@@ -6,3 +6,5 @@ myenv/
 vir/
 .vir/
 venv/
+__pycache__
+__pycache__/

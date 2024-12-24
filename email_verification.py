@@ -6,6 +6,10 @@ import random
 
 router = APIRouter()
 
+@router.get("/")
+async def read_root():
+    return {"message": "This API is live"}
+
 class EmailRequest(BaseModel):
     email: EmailStr
 
