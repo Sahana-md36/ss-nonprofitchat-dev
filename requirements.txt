@@ -1,0 +1,11 @@
+cohere
+fastapi
+uvicorn
+pydantic
+pydantic[email]
+pyjwt
+simple_salesforce
+semantic_router
+python-dotenv
+requests
+itsdangerous
