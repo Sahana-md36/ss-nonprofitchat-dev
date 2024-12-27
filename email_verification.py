@@ -26,7 +26,7 @@ async def generate_otp(request: Request, response: Response, email_request: Emai
     jwt_token = encode_jwt(session_data)
 
     send_email(email, otp)
-    response.set_cookie(key="session_token", value=jwt_token, httponly=True, samesite="None", secure=True)
+    response.set_cookie(key="session_token", value=jwt_token, httponly=True, samesite="None", secure=False)
 
     return {"message": f"OTP sent to {email}. Please check your inbox."}
 
