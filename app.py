@@ -3,8 +3,19 @@ from starlette.middleware.sessions import SessionMiddleware
 from email_verification import router as email_verification_router
 import os
 import uvicorn
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # List of allowed origins
+    allow_credentials=True,  # Allow cookies or Authorization headers
+    allow_methods=["*"],  # HTTP methods allowed (e.g., GET, POST, etc.)
+    allow_headers=["*"],  # HTTP headers allowed
+)
+
 
 # Middleware for handling session cookies
 app.add_middleware(SessionMiddleware, secret_key=os.getenv("JWT_SECRET_KEY"))
