@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Request, Response, HTTPException
+from fastapi import APIRouter, Request, Response, HTTPException, status
 from pydantic import BaseModel, EmailStr
 from session_utils import encode_jwt, decode_jwt, send_email
-from salesforce_utils import get_contact_by_email, create_contact
+from salesforce_utils import get_contact_by_email, create_contact, query_database
 import random
+from semantic_router_utils import setup_routes, handle_user_query
 
 router = APIRouter()
 
@@ -29,69 +30,6 @@ async def generate_otp(request: Request, response: Response, email_request: Emai
     response.set_cookie(key="session_token", value=jwt_token, httponly=True, samesite="None", secure=True)
 
     return {"message": f"OTP sent to {email}. Please check your inbox."}
-
-# @router.post("/auth/verify-otp")
-# async def verify_otp(request: Request, otp_request: OTPValidationRequest):
-#     session_token = request.cookies.get("session_token")
-#     if not session_token:
-#         raise HTTPException(status_code=400, detail="Session token not found in cookies.")
-
-#     session_data = decode_jwt(session_token)
-#     if not session_data:
-#         raise HTTPException(status_code=400, detail="Invalid session token.")
-
-#     if session_data["otp"] != otp_request.otp:
-#         raise HTTPException(status_code=400, detail="Invalid OTP.")
-
-#     email = session_data["email"]
-#     contact = get_contact_by_email(email)
-#     if contact:
-#         return {"message": f"Email verified. Contact found: {contact['Name']}"}
-#     else:
-#         create_contact(email)
-#         return {"message": "Email verified. New Contact created."}
-
-
-# @router.post("/auth/verify-otp")
-# async def verify_otp(request: Request, otp_request: OTPValidationRequest):
-#     session_token = request.cookies.get("session_token")
-#     if not session_token:
-#         raise HTTPException(status_code=400, detail="Session token not found in cookies.")
-
-#     session_data = decode_jwt(session_token)
-#     if not session_data:
-#         raise HTTPException(status_code=400, detail="Invalid session token.")
-
-#     if session_data["otp"] != otp_request.otp:
-#         raise HTTPException(status_code=400, detail="Invalid OTP.")
-
-#     email = session_data["email"]
-#     contact = get_contact_by_email(email)
-#     if contact:
-#         return {"message": f"Email verified. Contact found: {contact['Name']}"}
-#     else:
-
-#         return {
-#             "message": "Email verified. Last name is required to create a new Contact.",
-#             "next_step": "Please provide your last name.",
-#             "email": email,
-#         }
-
-# class LastNameRequest(BaseModel):
-#     email: EmailStr
-#     last_name: str
-
-# @router.post("/auth/add-lastname")
-# async def add_lastname(request: Request, lastname_request: LastNameRequest):
-#     email = lastname_request.email
-#     last_name = lastname_request.last_name
-
-#     contact = get_contact_by_email(email)
-#     if contact:
-#         return {"message": f"Contact already exists: {contact['Name']}"}
-
-#     create_contact(email, last_name)
-#     return {"message": f"New Contact created for email: {email} with last name: {last_name}"}
 
 
 @router.post("/auth/verify-otp")
@@ -135,3 +73,39 @@ async def add_details(request: Request, user_details_request: UserDetailsRequest
 
     create_contact(email, first_name, last_name)
     return {"message": f"New Contact created for email: {email} with name: {first_name} {last_name}"}
+
+# Semantic routing
+rl = setup_routes()
+
+class QueryRequest(BaseModel):
+    query: str
+
+@router.post("/process-query")
+async def process_query(request: Request, query_request: QueryRequest):
+    session_token = request.cookies.get("session_token")  # Extract the session token from cookies
+    if not session_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired or invalid.")
+ 
+    session_data = decode_jwt(session_token)  # Decode the JWT for session data
+    if not session_data:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired or invalid.")
+    
+    query = query_request.query
+
+    # Classify the query using semantic routing
+    classification = handle_user_query(query)
+    route_name = classification.get("route_name", "OTHER")
+
+    route_info = query_database(session_data["email"], route_name)
+    # Handle the case where we get a message instead of data
+    if isinstance(route_info, dict) and "message" in route_info:
+        return route_info  # Return the message if no data found
+    
+    # Extract summaries for the records
+    if isinstance(route_info, list):
+        return route_info  # Return summaries directly if it's a list
+    
+    # Return the application status or other singular info
+    return {"data": route_info}  # Handling non-list return values
+
+
