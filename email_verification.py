@@ -51,7 +51,7 @@ async def verify_otp(request: Request, otp_request: OTPValidationRequest):
         return {"message": f"Email verified. Contact found: {contact['Name']}"}
     else:
         return {
-            "message": "Email verified. First name and last name are required to create a new Contact.",
+            "message": "Email verified. To proceed further, please provide your first name, last name, and email address.",
             "next_step": "Please provide your details.",
             "email": email,
         }
@@ -84,11 +84,11 @@ class QueryRequest(BaseModel):
 async def process_query(request: Request, query_request: QueryRequest):
     session_token = request.cookies.get("session_token")  # Extract the session token from cookies
     if not session_token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired or invalid.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired or invalid. Please log in and verify your email to proceed further.")
  
     session_data = decode_jwt(session_token)  # Decode the JWT for session data
     if not session_data:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired or invalid.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired or invalid. Please log in and verify your email to proceed further.")
     
     query = query_request.query
 
@@ -106,6 +106,8 @@ async def process_query(request: Request, query_request: QueryRequest):
         return route_info  # Return summaries directly if it's a list
     
     # Return the application status or other singular info
-    return {"data": route_info}  # Handling non-list return values
+    if route_name=="STATUS_ROUTE" and route_info is None:
+        route_info = "Status Unavailable"
+    return {"message": route_info}  # Handling non-list return values
 
 
