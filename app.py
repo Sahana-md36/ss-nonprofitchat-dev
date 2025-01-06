@@ -10,7 +10,7 @@ app = FastAPI()
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # List of allowed origins
+    allow_origins=["http://localhost:3000", "https://nonprofit-ui.azurewebsites.net"],  # List of allowed origins
     allow_credentials=True,  # Allow cookies or Authorization headers
     allow_methods=["*"],  # HTTP methods allowed (e.g., GET, POST, etc.)
     allow_headers=["*"],  # HTTP headers allowed
