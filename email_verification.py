@@ -51,7 +51,7 @@ async def verify_otp(request: Request, otp_request: OTPValidationRequest):
         return {"message": f"Email verified. Contact found: {contact['Name']}"}
     else:
         return {
-            "message": "Email verified. To proceed further, please provide your first name, last name, and email address.",
+            "message": "Email verified. To proceed further, please provide your first and last name",
             "next_step": "Please provide your details.",
             "email": email,
         }
