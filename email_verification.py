@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Response, HTTPException, status
 from pydantic import BaseModel, EmailStr
-from session_utils import encode_jwt, decode_jwt, send_email
+from session_utils import encode_jwt, decode_jwt, send_email, is_valid_email
 from salesforce_utils import get_contact_by_email, create_contact, query_database
 import random
 from semantic_router_utils import setup_routes, handle_user_query
@@ -12,7 +12,7 @@ async def read_root():
     return {"message": "This API is live"}
 
 class EmailRequest(BaseModel):
-    email: EmailStr
+    email: str
 
 class OTPValidationRequest(BaseModel):
     otp: int
@@ -20,6 +20,10 @@ class OTPValidationRequest(BaseModel):
 @router.post("/auth/generate-otp")
 async def generate_otp(request: Request, response: Response, email_request: EmailRequest):
     email = email_request.email
+
+    if not is_valid_email(email):
+        return {"message": "Please enter a valid email address"}
+
     otp = random.randint(100000, 999999)
 
     # Store session ID and OTP in JWT
@@ -29,30 +33,30 @@ async def generate_otp(request: Request, response: Response, email_request: Emai
     send_email(email, otp)
     response.set_cookie(key="session_token", value=jwt_token, httponly=True, samesite="None", secure=True)
 
-    return {"message": f"OTP sent to {email}. Please check your inbox."}
+    return {"message": f"OTP sent to {email}. Please check your inbox"}
 
 
 @router.post("/auth/verify-otp")
 async def verify_otp(request: Request, otp_request: OTPValidationRequest):
     session_token = request.cookies.get("session_token")
     if not session_token:
-        raise HTTPException(status_code=400, detail="Session token not found in cookies.")
+        raise HTTPException(status_code=400, detail="Session token not found in cookies")
 
     session_data = decode_jwt(session_token)
     if not session_data:
-        raise HTTPException(status_code=400, detail="Invalid session token.")
+        raise HTTPException(status_code=400, detail="Invalid session token")
 
     if session_data["otp"] != otp_request.otp:
-        raise HTTPException(status_code=400, detail="Invalid OTP.")
+        raise HTTPException(status_code=400, detail="Invalid OTP")
 
     email = session_data["email"]
     contact = get_contact_by_email(email)
     if contact:
-        return {"message": f"Email verified. Contact found: {contact['Name']}"}
+        return {"message": f"Email verified. Welcome {contact['Name']}. You can now ask questions about the Scholarship Application Process, the Documents Required and the Status of your application if you have already applied for scholarship"}
     else:
         return {
-            "message": "Email verified. To proceed further, please provide your first and last name",
-            "next_step": "Please provide your details.",
+            "message": "Email verified. Since this is the first time you are using the chat, we will need your first and last name to create a new user.  Please start with providing your first name",
+            "next_step": "Please provide your details",
             "email": email,
         }
 
@@ -69,10 +73,10 @@ async def add_details(request: Request, user_details_request: UserDetailsRequest
 
     contact = get_contact_by_email(email)
     if contact:
-        return {"message": f"Contact already exists: {contact['Name']}"}
+        return {"message": f"User already exists for {contact['Name']}"}
 
     create_contact(email, first_name, last_name)
-    return {"message": f"New Contact created for email: {email} with name: {first_name} {last_name}"}
+    return {"message": f"Created new user for email {email} with name {first_name} {last_name}. You can now ask questions about the Scholarship Application Process and the Documents Required"}
 
 # Semantic routing
 rl = setup_routes()
@@ -107,7 +111,7 @@ async def process_query(request: Request, query_request: QueryRequest):
     
     # Return the application status or other singular info
     if route_name=="STATUS_ROUTE" and route_info is None:
-        route_info = "Status Unavailable"
+        route_info = "There is no Application found to report status"
     return {"message": route_info}  # Handling non-list return values
 
 

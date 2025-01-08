@@ -3,9 +3,9 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
-
+import re
 
 load_dotenv()
 
@@ -15,7 +15,7 @@ EXPIRE_DELTA = timedelta(hours=1)  # Token expiry time
 
 def encode_jwt(session_data: dict) -> str:
     """Generate JWT token with session data."""
-    expiration = datetime.utcnow() + EXPIRE_DELTA
+    expiration = datetime.now(timezone.utc) + EXPIRE_DELTA
     payload = {
         "data": session_data,
         "exp": expiration
@@ -57,3 +57,13 @@ def send_email(email, otp):
             print(f"OTP {otp} sent successfully to {email}")
     except Exception as e:
         print(f"Failed to send OTP email: {e}")
+
+
+# Regex for email validation
+EMAIL_REGEX = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+
+def is_valid_email(email: str) -> bool:
+    """
+    Validates the email using a regular expression.
+    """
+    return re.match(EMAIL_REGEX, email) is not None
