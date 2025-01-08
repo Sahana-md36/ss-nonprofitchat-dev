@@ -6,12 +6,14 @@ import jwt
 from datetime import datetime, timedelta, timezone
 import os
 import re
+from fastapi import Request
+from typing import Union
 
 load_dotenv()
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")  
 ALGORITHM = os.getenv("JWT_ALGORITHM") 
-EXPIRE_DELTA = timedelta(hours=1)  # Token expiry time
+EXPIRE_DELTA = timedelta(minutes=30)  # Token expiry time
 
 def encode_jwt(session_data: dict) -> str:
     """Generate JWT token with session data."""
@@ -32,6 +34,28 @@ def decode_jwt(token: str) -> dict:
     except jwt.InvalidTokenError:
         return None
 
+def validate_session_token(request: Request) -> Union[dict, str]:
+    """
+    Validates the session token from cookies and decodes the session data.
+
+    Args:
+        request (Request): The incoming HTTP request.
+
+    Returns:
+        Union[dict, str]: Decoded session data if valid, or an error message if invalid.
+    """
+    try:
+        session_token = request.cookies.get("session_token")
+        if not session_token:
+            raise ValueError("Session expired")
+
+        session_data = decode_jwt(session_token)
+        if not session_data:
+            raise ValueError("Session invalid")
+
+        return session_data
+    except ValueError:
+        return "Session expired or invalid, please log in again."
 
 
 GMAIL_USER = os.getenv("GMAIL_USER")  
