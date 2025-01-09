@@ -33,7 +33,7 @@ async def generate_otp(request: Request, response: Response, email_request: Emai
     send_email(email, otp)
     response.set_cookie(key="session_token", value=jwt_token, httponly=True, samesite="None", secure=True)
 
-    return {"message": f"OTP sent to {email}. Please check your inbox."}
+    return {"message": f"An OTP has been sent to {email}. Please check your inbox and enter the OTP below."}
 
 
 @router.post("/auth/verify-otp")

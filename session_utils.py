@@ -55,7 +55,7 @@ def validate_session_token(request: Request) -> Union[dict, str]:
 
         return session_data
     except ValueError:
-        return "Session expired or invalid, please log in again."
+        return "Your session has expired or is invalid. Please log out and log in again to continue."
 
 
 GMAIL_USER = os.getenv("GMAIL_USER")  
