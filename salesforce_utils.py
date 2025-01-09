@@ -63,6 +63,9 @@ def query_database(email, route_name):
             if results["totalSize"] == 0 or not results['records']:
                 return {"message": "No data found for the provided email or application status.", "route": route_name}
             data = results['records'][0].get('Application_Status__c')
+            if data is None:
+                return {"message": "There is no application found to report status."}
+            return {"message": f"The application status is {data}."}
         
         else:
             return {"message": "Sorry, I am unable to answer that question. Please ask about Application Process, Documents required, or the status of your application."}

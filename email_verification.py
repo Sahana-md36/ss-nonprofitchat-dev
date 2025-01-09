@@ -117,8 +117,8 @@ async def process_query(request: Request, query_request: QueryRequest):
         return route_info  # Return summaries directly if it's a list
     
     # Return the application status or other singular info
-    if route_name=="STATUS_ROUTE" and route_info is None:
-        route_info = "There is no Application found to report status"
+    # if route_name=="STATUS_ROUTE" and route_info is None:
+    #     route_info = "There is no Application found to report status"
     return {"message": route_info}  # Handling non-list return values
 
 
